@@ -8,9 +8,10 @@ class VoiceCommandSimulator:
     text that mimics what would come from a speech-to-text system.
     """
     
-    def __init__(self, language="en-US", confidence_range=(0.85, 0.98)):
+    def __init__(self, language="en-US", confidence_range=(0.85, 0.98), supported_languages=None):
         self.language = language
         self.confidence_range = confidence_range
+        self.supported_languages = supported_languages or ["en-US", "hi-IN", "ta-IN"]
         
         # Common words that might be misheard
         self.sound_alikes = {
@@ -68,10 +69,34 @@ class VoiceCommandSimulator:
         
         return result
     
+    def simulate_intent_recognition(self, command_text):
+        """
+        Simulate NLP intent recognition by returning an intent label
+        based on keywords in the command text.
+        """
+        command_text_lower = command_text.lower()
+        if "balance" in command_text_lower:
+            return "balance_inquiry"
+        elif "transfer" in command_text_lower or "pay" in command_text_lower:
+            return "fund_transfer"
+        elif "transaction" in command_text_lower or "history" in command_text_lower:
+            return "transaction_history"
+        else:
+            return "unknown_intent"
+    
+    def simulate_voice_biometrics(self, command_text):
+        """
+        Simulate voice biometric authentication.
+        For now, randomly succeed or fail with high probability of success.
+        """
+        # 90% chance of successful biometric authentication
+        success = random.random() < 0.9
+        return success
+    
     def simulate_command(self, command_text):
         """
         Simulate the process of speaking a command, with realistic timing
-        Returns the simulated recognition result
+        Returns the simulated recognition result including intent and biometric info
         """
         # Simulate the time it takes to speak the command
         speaking_time = 0.1 * len(command_text.split())  # ~100ms per word
@@ -81,8 +106,20 @@ class VoiceCommandSimulator:
         processing_delay = random.uniform(0.2, 0.8)  # 200-800ms
         time.sleep(processing_delay)
         
-        # Generate and return the result
-        return self.generate_voice_result(command_text)
+        # Generate voice recognition result
+        voice_result = self.generate_voice_result(command_text)
+        
+        # Simulate intent recognition
+        intent = self.simulate_intent_recognition(command_text)
+        
+        # Simulate voice biometric authentication
+        biometric_success = self.simulate_voice_biometrics(command_text)
+        
+        # Add intent and biometric info to the result
+        voice_result["intent"] = intent
+        voice_result["biometric_success"] = biometric_success
+        
+        return voice_result
 
 def test_simulator():
     """Test the voice command simulator with sample commands"""
@@ -101,6 +138,8 @@ def test_simulator():
         result = simulator.simulate_command(command)
         print(f"Simulated result: '{result['results'][0]['alternatives'][0]['transcript']}'")
         print(f"Confidence: {result['results'][0]['alternatives'][0]['confidence']:.2f}")
+        print(f"Intent: {result['intent']}")
+        print(f"Biometric Success: {result['biometric_success']}")
         print(f"Processing time: {result['processing_time_ms']}ms")
         print("-" * 50)
 
