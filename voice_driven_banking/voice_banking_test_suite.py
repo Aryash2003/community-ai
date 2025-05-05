@@ -4,6 +4,7 @@ import time
 from voice_simulator import VoiceCommandSimulator
 from selenium_automation import VoiceBankingAutomation
 
+
 class VoiceBankingTestSuite:
     """
     Integrates the voice simulator with the Selenium automation to create
@@ -70,7 +71,10 @@ class VoiceBankingTestSuite:
                         "What are my recent transactions"
                     ]
                 }
-            ]
+            ],
+            # Add support for LAMs and voice biometrics
+            "regional_languages_accents": ["en-US", "hi-IN", "ta-IN"],
+            "enable_voice_biometrics": True
         }
         
         if config_file and os.path.exists(config_file):
@@ -129,6 +133,18 @@ class VoiceBankingTestSuite:
             # Clean up
             self.automation.close()
     
+    def _simulate_voice_biometrics(self, command_text):
+        """Simulate voice biometric authentication for secure access"""
+        if not self.config.get("enable_voice_biometrics", False):
+            return True  # Skip biometric if disabled
+        
+        print(f"Simulating voice biometrics for command: '{command_text}'")
+        # Placeholder for biometric simulation logic
+        # For now, assume biometric authentication passes
+        biometric_success = True
+        
+        return biometric_success
+    
     def _test_command(self, command_name, command_text):
         """Test a single voice command and record results"""
         # Simulate voice command
@@ -149,8 +165,15 @@ class VoiceBankingTestSuite:
             print(f"Warning: Could not identify command type for '{command_name}'")
             command_type = "unknown"
         
-        # Execute the command in the banking interface
-        result = self.automation.execute_voice_command(command_type)
+        # Simulate voice biometric authentication
+        biometric_result = self._simulate_voice_biometrics(command_text)
+        
+        # Execute the command in the banking interface only if biometric passed
+        if biometric_result:
+            result = self.automation.execute_voice_command(command_type)
+        else:
+            print("Voice biometric authentication failed.")
+            result = False
         
         # Record the test result
         test_result = {
@@ -158,6 +181,7 @@ class VoiceBankingTestSuite:
             "original_command": command_text,
             "recognized_command": recognized_text,
             "confidence": voice_result["results"][0]["alternatives"][0]["confidence"],
+            "biometric_success": biometric_result,
             "success": result,
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
         }
@@ -165,8 +189,8 @@ class VoiceBankingTestSuite:
         self.results["tests"].append(test_result)
         
         # Print result
-        status = "✅ PASSED" if result else "❌ FAILED"
-        print(f"{status} - Original: '{command_text}', Recognized: '{recognized_text}'")
+        status = "PASSED" if result else "FAILED"
+        print(f"{status} - Original: '{command_text}', Recognized: '{recognized_text}', Biometric: {'Passed' if biometric_result else 'Failed'}")
         
         return result
     
